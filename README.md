@@ -1,21 +1,33 @@
-HEAD
-# my_app
+# 🏥 Med-Lens
 
-A new Flutter project.
+**Med-Lens** is a Flutter-based mobile application designed to simplify medical information through the power of your smartphone camera. By leveraging AI/ML, Med-Lens helps users identify medications, understand prescriptions, or analyze medical reports at a glance.
 
-## Getting Started
+---
 
-This project is a starting point for a Flutter application.
+## 🚀 Features
+* **Real-time Recognition:** Instantly identify medicine packaging or text using the camera.
+* **Simple Explanations:** Breaks down complex medical jargon into easy-to-understand language.
+* **User-Friendly Interface:** Built with Flutter for a smooth, cross-platform experience.
+* **History Logs:** Keep track of previously scanned items (Coming Soon).
 
-A few resources to get you started if this is your first Flutter project:
+## 🛠️ Tech Stack
+* **Framework:** [Flutter](https://flutter.dev/)
+* **Language:** [Dart](https://dart.dev/)
+* **Database:** (e.g., Firebase or SQLite - *Update this as you go!*)
+* **Tools:** Git, Android Studio / VS Code
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+## 📸 Screenshots
+| Splash Screen | Home Page | Scanner UI |
+| :---: | :---: | :---: |
+| *Add Image* | *Add Image* | *Add Image* |
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## 🏁 Getting Started
 
-# Med-Lens-App
- 8d58a887886111f6289d3d1eee2b05dffe601404
+### Prerequisites
+* Flutter SDK installed on your machine.
+* An Android/iOS emulator or a physical device.
+
+### Installation
+1. **Clone the repository:**
+   ```bash
+   git clone [https://github.com/Parth-Narang/Med-Lens-App.git](https://github.com/Parth-Narang/Med-Lens-App.git)
