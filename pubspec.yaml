@@ -1,0 +1,59 @@
+name: my_app
+description: "A new Flutter project."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_displaymode: ^0.6.0
+  shared_preferences: ^2.2.2
+  
+  # Icons and Fonts
+  cupertino_icons: ^1.0.6
+  google_fonts: ^6.1.0
+  lucide_icons: ^0.257.0
+
+  # The "Eyes" (Scanner & OCR)
+  mobile_scanner: ^5.1.0
+  google_ml_kit: ^0.19.0
+
+  # The "Brain" (Firebase Database)
+  firebase_core: ^2.24.0
+  cloud_firestore: ^4.14.0
+
+  # Animation & UI
+  flutter_animate: ^4.5.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+  # --- ADDED THIS LINE BELOW ---
+  flutter_launcher_icons: ^0.13.1 
+  flutter_native_splash: ^2.4.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/
+    - assets/icons/
+
+# Configuration for the icon generator
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/images/app_icon.png"
+  min_sdk_android: 21
+
+flutter_native_splash:
+  color: "#ffffff" # Background color (Matches your icon background)
+  image: "assets/images/app_icon.png" # Your logo
+  android_12:
+    image: "assets/images/app_icon.png" # Specific for newer Androids
+    color: "#ffffff"
+  fullscreen: true
