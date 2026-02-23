@@ -27,7 +27,22 @@
 * Flutter SDK installed on your machine.
 * An Android/iOS emulator or a physical device.
 
-### Installation
-1. **Clone the repository:**
+# 🛠️ Setup Instructions
+Follow these steps to get a local copy of the project up and running:
+
+1. **Clone the repository**
    ```bash
-   git clone [https://github.com/Parth-Narang/Med-Lens-App.git](https://github.com/Parth-Narang/Med-Lens-App.git)
+   git clone https://github.com/Parth-Narang/Med-Lens-App.git
+   ```
+
+2. **Install dependencies**
+   Navigate into the project folder and run:
+   ```bash
+   flutter pub get
+   ```
+
+3. **Run the application**
+   Connect your physical device or start an emulator, then run:
+   ```bash
+   flutter run
+   ```
