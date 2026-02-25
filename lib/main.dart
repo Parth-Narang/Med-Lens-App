@@ -1,23 +1,67 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:flutter_displaymode/flutter_displaymode.dart'; // Add this
+import 'package:flutter_displaymode/flutter_displaymode.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:timezone/data/latest.dart' as tz;
+import 'package:timezone/timezone.dart' as tz;
+import 'package:lucide_icons/lucide_icons.dart'; // Added for modern icons
 import 'screens/home_dashboard.dart';
 import 'screens/medicine_cabinet_screen.dart';
 import 'screens/scanner_screen.dart';
+import 'screens/prescription_screen.dart'; // Import the new screen
 
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
 final RouteObserver<ModalRoute<void>> routeObserver = RouteObserver<ModalRoute<void>>();
 
 void main() async {
-  // Ensure Flutter is ready before calling native code
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Set the device to its maximum refresh rate (90Hz, 120Hz, etc.)
+  const AndroidInitializationSettings initializationSettingsAndroid = AndroidInitializationSettings('@mipmap/launcher_icon');
+  const InitializationSettings initializationSettings = InitializationSettings(android: initializationSettingsAndroid);
+  await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+  
+  await _createNotificationChannels();
+  await requestNotificationPermissions();
+  
+  tz.initializeTimeZones();
+  tz.setLocalLocation(tz.getLocation('Asia/Kolkata'));
+  
   await setMaxRefreshRate();
   
   runApp(const MedVerifyApp());
 }
 
-// Function to unlock high refresh rates on Android devices
+Future<void> _createNotificationChannels() async {
+  final androidPlugin = flutterLocalNotificationsPlugin
+      .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+
+  await androidPlugin?.createNotificationChannel(const AndroidNotificationChannel(
+    'dosage_channel', 
+    'Dosage Alerts',
+    description: 'Reminders to take your medicine',
+    importance: Importance.max,
+    playSound: true,
+  ));
+
+  await androidPlugin?.createNotificationChannel(const AndroidNotificationChannel(
+    'expiry_channel', 
+    'Expiry Alerts',
+    description: 'Alerts for medicine expiration',
+    importance: Importance.max,
+    playSound: true,
+  ));
+}
+
+Future<void> requestNotificationPermissions() async {
+  final androidImplementation = flutterLocalNotificationsPlugin
+      .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+  
+  if (androidImplementation != null) {
+    await androidImplementation.requestNotificationsPermission();
+    await androidImplementation.requestExactAlarmsPermission();
+  }
+}
+
 Future<void> setMaxRefreshRate() async {
   try {
     final List<DisplayMode> modes = await FlutterDisplayMode.supported;
@@ -39,7 +83,6 @@ class MedVerifyApp extends StatelessWidget {
       navigatorObservers: [routeObserver], 
       theme: ThemeData(
         useMaterial3: true,
-        // Enabling Material 3 and using seed colors helps with GPU efficiency
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xFF2260FF),
           primary: const Color(0xFF2260FF),
@@ -62,6 +105,7 @@ class _ScreenSwitcherState extends State<ScreenSwitcher> {
   int _selectedIndex = 0;
   Key _cabinetKey = UniqueKey();
   Key _homeKey = UniqueKey();
+  Key _prescriptionKey = UniqueKey();
 
   void _onItemTapped(int index) {
     if (index == 1) {
@@ -72,14 +116,16 @@ class _ScreenSwitcherState extends State<ScreenSwitcher> {
         setState(() {
           _homeKey = UniqueKey();
           _cabinetKey = UniqueKey();
+          _prescriptionKey = UniqueKey();
         });
       });
     } else {
       if (_selectedIndex != index) {
         setState(() {
           _selectedIndex = index;
-          if (index == 2) _cabinetKey = UniqueKey();
           if (index == 0) _homeKey = UniqueKey();
+          if (index == 2) _prescriptionKey = UniqueKey();
+          if (index == 3) _cabinetKey = UniqueKey();
         });
       }
     }
@@ -87,14 +133,13 @@ class _ScreenSwitcherState extends State<ScreenSwitcher> {
 
   @override
   Widget build(BuildContext context) {
-    // Optimization: IndexedStack works best when the children list 
-    // is built once. Use 'const' where possible.
     return Scaffold(
       body: IndexedStack(
         index: _selectedIndex, 
         children: [
           HomeDashboard(key: _homeKey),
-          const SizedBox.shrink(), // Using shrink() is lighter than SizedBox()
+          const SizedBox.shrink(), 
+          PrescriptionScreen(key: _prescriptionKey), 
           MedicineCabinetScreen(key: _cabinetKey),
         ],
       ),
@@ -102,11 +147,15 @@ class _ScreenSwitcherState extends State<ScreenSwitcher> {
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
         selectedItemColor: const Color(0xFF2260FF),
+        unselectedItemColor: Colors.grey,
         type: BottomNavigationBarType.fixed,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_rounded), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.qr_code_scanner_rounded), label: 'Scan'),
-          BottomNavigationBarItem(icon: Icon(Icons.inventory_2_rounded), label: 'Cabinet'),
+        // REMOVED 'const' from items to allow LucideIcons
+        items: [
+          const BottomNavigationBarItem(icon: Icon(LucideIcons.home), label: 'Home'),
+          const BottomNavigationBarItem(icon: Icon(LucideIcons.scanLine), label: 'Scan'),
+          const BottomNavigationBarItem(icon: Icon(LucideIcons.fileText), label: 'Prescription'),
+          // Changed 'inventory' to 'package' which exists in Lucide
+          const BottomNavigationBarItem(icon: Icon(LucideIcons.package), label: 'Cabinet'),
         ],
       ),
     );

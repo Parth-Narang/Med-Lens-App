@@ -2,7 +2,10 @@ plugins {
     // We do NOT put versions here because they are inherited or injected
     id("com.android.application") apply false
     id("com.android.library") apply false
-    id("org.jetbrains.kotlin.android") apply false
+    
+    // REMOVED: version "2.1.0" to prevent the "different version (1.9.24)" conflict
+    id("org.jetbrains.kotlin.android") apply false 
+    
     id("dev.flutter.flutter-gradle-plugin") apply false 
 }
 

@@ -4,17 +4,29 @@ import 'package:shared_preferences/shared_preferences.dart';
 class LocalStorage {
   static const String _storageKey = 'my_cabinet';
 
-  // 1. Save medicine (Now handles batch, expiry, etc. automatically via Map)
+  // 1. Save or Update medicine
   static Future<void> saveMedicine(Map<String, String> medicine) async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
-
-    // Get existing list
     List<String> cabinetJson = prefs.getStringList(_storageKey) ?? [];
 
-    // Add new medicine (JSON format preserves all your new fields)
-    cabinetJson.add(jsonEncode(medicine));
+    // Check if medicine with this code already exists
+    int existingIndex = -1;
+    for (int i = 0; i < cabinetJson.length; i++) {
+      Map<String, dynamic> item = jsonDecode(cabinetJson[i]);
+      if (item['code'] == medicine['code']) {
+        existingIndex = i;
+        break;
+      }
+    }
 
-    // Save back to disk
+    if (existingIndex != -1) {
+      // UPDATE: Replace existing entry
+      cabinetJson[existingIndex] = jsonEncode(medicine);
+    } else {
+      // ADD: Create new entry
+      cabinetJson.add(jsonEncode(medicine));
+    }
+
     await prefs.setStringList(_storageKey, cabinetJson);
   }
 
@@ -23,7 +35,6 @@ class LocalStorage {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     List<String> cabinetJson = prefs.getStringList(_storageKey) ?? [];
 
-    // Decoding preserves the Batch and Expiry you added in the Details screen
     return cabinetJson
         .map((item) => jsonDecode(item) as Map<String, dynamic>)
         .toList();
@@ -40,7 +51,7 @@ class LocalStorage {
     }
   }
 
-  // 4. NEW: Clear all data (Useful for testing QR codes)
+  // 4. Clear all data
   static Future<void> clearCabinet() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.remove(_storageKey);

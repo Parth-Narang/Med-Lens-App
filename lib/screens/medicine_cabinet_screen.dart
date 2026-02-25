@@ -15,6 +15,7 @@ class MedicineCabinetScreen extends StatefulWidget {
 
 class _MedicineCabinetScreenState extends State<MedicineCabinetScreen> with RouteAware {
   late Future<List<Map<String, dynamic>>> _cabinetData;
+  final Map<int, bool> _completedDosages = {};
 
   @override
   void initState() {
@@ -42,9 +43,23 @@ class _MedicineCabinetScreenState extends State<MedicineCabinetScreen> with Rout
   void _loadData() {
     if (mounted) {
       setState(() {
-        // We fetch the data as usual
         _cabinetData = LocalStorage.getCabinet();
       });
+    }
+  }
+
+  Color _getExpiryColor(String? expiryStr) {
+    if (expiryStr == null || expiryStr == "-" || expiryStr.isEmpty) return Colors.blueGrey;
+    try {
+      List<String> parts = expiryStr.split('/');
+      DateTime expiry = DateTime(int.parse(parts[2]), int.parse(parts[1]), int.parse(parts[0]));
+      int daysRemaining = expiry.difference(DateTime.now()).inDays;
+
+      if (daysRemaining < 0) return Colors.red; 
+      if (daysRemaining <= 30) return Colors.orange; 
+      return Colors.green; 
+    } catch (e) {
+      return Colors.blueGrey;
     }
   }
 
@@ -52,17 +67,17 @@ class _MedicineCabinetScreenState extends State<MedicineCabinetScreen> with Rout
     return await showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text("Remove Medicine?"),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: Text("Remove Medicine?", style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold)),
         content: Text("Are you sure you want to remove $medName?"),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text("No", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+            child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text("Yes", style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+            child: const Text("Remove", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -72,117 +87,177 @@ class _MedicineCabinetScreenState extends State<MedicineCabinetScreen> with Rout
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: MedVerifyTheme.bgGray,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        title: Text("My Cabinet", 
-          style: GoogleFonts.inter(color: Colors.black, fontWeight: FontWeight.bold)),
-      ),
-      body: FutureBuilder<List<Map<String, dynamic>>>(
-        future: _cabinetData, 
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
+      backgroundColor: const Color(0xFFF8F9FE),
+      body: Column(
+        children: [
+          // PREMIUM RECTANGULAR HEADER
+          _buildHeader(),
           
-          if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return _buildEmptyState();
-          }
+          Expanded(
+            child: FutureBuilder<List<Map<String, dynamic>>>(
+              future: _cabinetData, 
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator(color: MedVerifyTheme.primaryBlue));
+                }
+                if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return _buildEmptyState();
+                }
 
-          // --- SORTING LOGIC ---
-          // LocalStorage saves items by appending to the end. 
-          // Reversing the list puts the newest items (the ones at the end) at the top.
-          final medicines = snapshot.data!.reversed.toList();
+                final medicines = snapshot.data!.reversed.toList();
 
-          return ListView.builder(
-            padding: const EdgeInsets.all(20),
-            itemCount: medicines.length,
-            itemBuilder: (context, index) {
-              final Map<String, String> med = medicines[index].map(
-                (key, value) => MapEntry(key, value.toString()),
-              );
+                return ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                  itemCount: medicines.length,
+                  itemBuilder: (context, index) {
+                    final Map<String, String> med = medicines[index].map(
+                      (key, value) => MapEntry(key, value.toString()),
+                    );
+                    final int originalIndex = (snapshot.data!.length - 1) - index;
+                    return _buildCabinetItem(context, med, originalIndex);
+                  },
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-              // Calculate the original index for deletion
-              // Original Index = (Total Length - 1) - Current Index
-              final int originalIndex = (snapshot.data!.length - 1) - index;
-
-              return _buildCabinetItem(context, med, originalIndex);
-            },
-          );
-        },
+  Widget _buildHeader() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.only(left: 24, right: 24, top: 60, bottom: 40),
+      decoration: const BoxDecoration(
+        color: MedVerifyTheme.primaryBlue,
+        borderRadius: BorderRadius.zero, // Rectangular edges
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "My Medicine Cabinet",
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 26,
+              fontWeight: FontWeight.w800,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            "Manage your active prescriptions",
+            style: TextStyle(color: Colors.white70, fontSize: 14),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildCabinetItem(BuildContext context, Map<String, String> med, int storageIndex) {
+    bool isDone = _completedDosages[storageIndex] ?? false;
+    String expiryDisplay = (med['expiry'] == null || med['expiry']!.isEmpty) ? "-" : med['expiry']!;
+    Color statusColor = _getExpiryColor(expiryDisplay);
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 12, offset: const Offset(0, 4))],
       ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        leading: Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: MedVerifyTheme.primaryBlue.withOpacity(0.1),
-            shape: BoxShape.circle,
-          ),
-          child: const Icon(LucideIcons.pill, color: MedVerifyTheme.primaryBlue),
-        ),
-        title: Text(med['name'] ?? 'Unknown', 
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-        
-        subtitle: Padding(
-          padding: const EdgeInsets.only(top: 4.0),
-          child: Row(
-            children: [
-              const Icon(LucideIcons.calendar, size: 14, color: Colors.blueGrey),
-              const SizedBox(width: 6),
-              Text(
-                "Expires: ${med['expiry'] ?? 'N/A'}", 
-                style: const TextStyle(
-                  fontSize: 13, 
-                  color: Colors.blueGrey, 
-                  fontWeight: FontWeight.w500
-                )
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: InkWell(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => MedicineDetailsScreen(
+                  medicineCode: med['code'] ?? "",
+                  medicineName: med['name'] ?? "",
+                  dosage: med['dosage'] ?? "",
+                  scannedBatch: med['batch'],
+                  scannedExpiry: expiryDisplay,
+                  isAuthentic: med['isAuthentic'] == "Yes",
+                ),
               ),
-            ],
-          ),
-        ),
-        
-        trailing: IconButton(
-          icon: const Icon(LucideIcons.trash2, color: Colors.redAccent),
-          onPressed: () async {
-            bool confirm = await _showDeleteDialog(context, med['name'] ?? "this medicine");
-            if (confirm) {
-              // We use the storageIndex calculated in the ListView
-              await LocalStorage.deleteMedicine(storageIndex);
-              _loadData(); 
-            }
+            ).then((_) => _loadData());
           },
-        ),
-        
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => MedicineDetailsScreen(
-                medicineCode: med['code'] ?? "",
-                medicineName: med['name'] ?? "",
-                dosage: med['dosage'] ?? "",
-                scannedBatch: med['batch'],
-                scannedExpiry: med['expiry'],
-                isAuthentic: med['isAuthentic'] == "Yes",
-              ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _completedDosages[storageIndex] = !isDone;
+                    });
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: isDone ? Colors.green : const Color(0xFFF1F4FF),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      isDone ? LucideIcons.check : LucideIcons.pill, 
+                      color: isDone ? Colors.white : MedVerifyTheme.primaryBlue,
+                      size: 20,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        med['name'] ?? 'Unknown', 
+                        style: GoogleFonts.plusJakartaSans(
+                          fontWeight: FontWeight.bold, 
+                          fontSize: 16,
+                          decoration: isDone ? TextDecoration.lineThrough : null,
+                          color: isDone ? Colors.grey : const Color(0xFF1A1C1E),
+                        )
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Icon(LucideIcons.calendar, size: 12, color: statusColor),
+                          const SizedBox(width: 4),
+                          Text(
+                            "Expires: $expiryDisplay",
+                            style: TextStyle(
+                              fontSize: 12, 
+                              color: statusColor, 
+                              fontWeight: expiryDisplay != "-" ? FontWeight.bold : FontWeight.normal
+                            )
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(LucideIcons.trash2, color: Color.fromARGB(255, 255, 1, 1), size: 20),
+                  onPressed: () async {
+                    bool confirm = await _showDeleteDialog(context, med['name'] ?? "this medicine");
+                    if (confirm) {
+                      if (med.containsKey('code')) {
+                        int medId = med['code']!.hashCode;
+                        await flutterLocalNotificationsPlugin.cancel(medId);
+                        await flutterLocalNotificationsPlugin.cancel(medId + 1000);
+                      }
+                      await LocalStorage.deleteMedicine(storageIndex);
+                      _loadData(); 
+                    }
+                  },
+                ),
+              ],
             ),
-          ).then((_) {
-            _loadData();
-          });
-        },
+          ),
+        ),
       ),
     );
   }
@@ -192,10 +267,13 @@ class _MedicineCabinetScreenState extends State<MedicineCabinetScreen> with Rout
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(LucideIcons.packageOpen, size: 80, color: Colors.grey[300]),
+          Icon(LucideIcons.packageSearch, size: 64, color: Colors.grey[300]),
           const SizedBox(height: 16),
-          const Text("Your cabinet is empty", 
-            style: TextStyle(color: Colors.grey, fontSize: 18)),
+          Text(
+            "No medicines found", 
+            style: GoogleFonts.plusJakartaSans(color: Colors.grey, fontSize: 16, fontWeight: FontWeight.w600)
+          ),
+          const Text("Your cabinet is currently empty", style: TextStyle(color: Colors.grey, fontSize: 13)),
         ],
       ),
     );

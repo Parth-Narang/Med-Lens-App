@@ -18,8 +18,10 @@ pluginManagement {
 
 plugins {
     id("dev.flutter.flutter-plugin-loader") version "1.0.0"
-    id("com.android.application") version "8.7.0" apply false // Use the stable version
-    id("org.jetbrains.kotlin.android") version "1.9.24" apply false
+    // UPDATED: Bumped to 8.9.1 to satisfy AndroidX requirements
+    id("com.android.application") version "8.9.1" apply false 
+    // UPDATED: Bumped to 2.1.0 to match the new AGP and clear warnings
+    id("org.jetbrains.kotlin.android") version "2.1.0" apply false
 }
 
 include(":app")
