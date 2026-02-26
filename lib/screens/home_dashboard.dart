@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:provider/provider.dart';
 import '../theme.dart';
 import '../services/local_storage.dart';
+import '../services/language_provider.dart';
 import 'medicine_cabinet_screen.dart';
 import '../medicine_details_screen.dart';
 import 'scanner_screen.dart';
@@ -25,51 +27,68 @@ class _HomeDashboardState extends State<HomeDashboard> {
 
   // --- POPUP DIALOGS ---
 
-  void _showRecallDialog(BuildContext context) {
+  void _showRecallDialog(BuildContext context, LanguageProvider lp) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-        title: const Row(
+        title: Row(
           children: [
-            Icon(LucideIcons.megaphone, color: Colors.red),
-            SizedBox(width: 10),
-            Text("Recent Recalls"),
+            const Icon(LucideIcons.megaphone, color: Colors.red),
+            const SizedBox(width: 10),
+            Text(lp.translate("Recent Recalls", "हालिया रिकॉल")),
           ],
         ),
-        content: const Text(
-          "CDSCO Alert: Certain batches of Paracetamol Syrup have been flagged for quality issues in Haryana. Please check your batch numbers against official lists.",
-          style: TextStyle(fontSize: 14),
+        content: Text(
+          lp.translate(
+            "CDSCO Alert: Certain batches of Paracetamol Syrup have been flagged for quality issues in Haryana. Please check your batch numbers against official lists.",
+            "CDSCO अलर्ट: हरियाणा में पैरासिटामोल सिरप के कुछ बैचों में गुणवत्ता संबंधी समस्याओं के लिए ध्वजांकित किया गया है। कृपया आधिकारिक सूचियों के विरुद्ध अपने बैच नंबरों की जांच करें।"
+          ),
+          style: const TextStyle(fontSize: 14),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text("Got it", style: TextStyle(color: MedVerifyTheme.primaryBlue, fontWeight: FontWeight.bold)),
+            child: Text(
+              lp.translate("Got it", "समझ गया"), 
+              style: const TextStyle(color: MedVerifyTheme.primaryBlue, fontWeight: FontWeight.bold)
+            ),
           ),
         ],
       ),
     );
   }
 
-  void _showHealthTipDialog(BuildContext context) {
+  void _showHealthTipDialog(BuildContext context, LanguageProvider lp) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-        title: const Text("Daily Health Tip"),
-        content: const Column(
+        title: Text(lp.translate("Daily Health Tip", "दैनिक स्वास्थ्य टिप")),
+        content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("💊 Take your medicines with plain water", style: TextStyle(fontWeight: FontWeight.bold)),
-            SizedBox(height: 8),
-            Text("Avoid taking medicines with milk or tea as they can block absorption, especially for Iron or Antibiotic tablets."),
+            Text(
+              lp.translate("💊 Take your medicines with plain water", "💊 अपनी दवाएं सादे पानी के साथ लें"), 
+              style: const TextStyle(fontWeight: FontWeight.bold)
+            ),
+            const SizedBox(height: 8),
+            Text(
+              lp.translate(
+                "Avoid taking medicines with milk or tea as they can block absorption, especially for Iron or Antibiotic tablets.",
+                "दूध या चाय के साथ दवाएं लेने से बचें क्योंकि वे अवशोषण को रोक सकते हैं, विशेष रूप से आयरन या एंटीबायोटिक टैबलेट के लिए।"
+              )
+            ),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text("Thanks!", style: TextStyle(color: MedVerifyTheme.primaryBlue, fontWeight: FontWeight.bold)),
+            child: Text(
+              lp.translate("Thanks!", "धन्यवाद!"), 
+              style: const TextStyle(color: MedVerifyTheme.primaryBlue, fontWeight: FontWeight.bold)
+            ),
           ),
         ],
       ),
@@ -95,13 +114,15 @@ class _HomeDashboardState extends State<HomeDashboard> {
 
   @override
   Widget build(BuildContext context) {
+    final lp = Provider.of<LanguageProvider>(context);
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FE), 
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildBlueHeader(context),
+            _buildBlueHeader(context, lp),
             
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -109,11 +130,11 @@ class _HomeDashboardState extends State<HomeDashboard> {
                 offset: const Offset(0, -40),
                 child: Column(
                   children: [
-                    _buildStatsRow(), // Interconnected to Cabinet
+                    _buildStatsRow(lp), 
                     const SizedBox(height: 20),
-                    _buildScanCard(context),
+                    _buildScanCard(context, lp),
                     const SizedBox(height: 16),
-                    _buildPrescriptionQuickAction(context), 
+                    _buildPrescriptionQuickAction(context, lp), 
                   ],
                 ),
               ),
@@ -126,15 +147,16 @@ class _HomeDashboardState extends State<HomeDashboard> {
                 children: [
                   _buildSectionHeader(
                     context,
-                    "Recently Added",
+                    lp.translate("Recently Added", "हाल ही में जोड़ा गया"),
                     showViewAll: true,
+                    lp: lp,
                   ),
                   const SizedBox(height: 16),
-                  _buildMedicineCarousel(context),
+                  _buildMedicineCarousel(context, lp),
                   const SizedBox(height: 32),
-                  _buildSectionHeader(context, "Safety & Wellness"),
+                  _buildSectionHeader(context, lp.translate("Safety & Wellness", "सुरक्षा और कल्याण"), lp: lp),
                   const SizedBox(height: 16),
-                  _buildSafetyAlerts(),
+                  _buildSafetyAlerts(lp),
                   const SizedBox(height: 40),
                 ],
               ),
@@ -145,7 +167,7 @@ class _HomeDashboardState extends State<HomeDashboard> {
     );
   }
 
-  Widget _buildBlueHeader(BuildContext context) {
+  Widget _buildBlueHeader(BuildContext context, LanguageProvider lp) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.only(left: 24, right: 24, top: 60, bottom: 60),
@@ -163,34 +185,54 @@ class _HomeDashboardState extends State<HomeDashboard> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "Health Dashboard",
+                    lp.translate("Health Dashboard", "स्वास्थ्य डैशबोर्ड"),
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 26,
                       fontWeight: FontWeight.w800,
                       color: Colors.white,
                     ),
                   ),
-                  const Text(
-                    "Your medication safety, verified.",
-                    style: TextStyle(color: Colors.white70, fontSize: 13, letterSpacing: 0.5),
+                  Text(
+                    lp.translate("Your medication safety, verified.", "आपकी दवा सुरक्षा, सत्यापित।"),
+                    style: const TextStyle(color: Colors.white70, fontSize: 13, letterSpacing: 0.5),
                   ),
                 ],
               ),
-              const CircleAvatar(
-                radius: 24,
-                backgroundColor: Colors.white24,
-                child: Icon(LucideIcons.user, color: Colors.white),
-              )
+              _buildLanguageToggle(lp),
             ],
           ),
           const SizedBox(height: 24),
-          _buildSearchBar(context),
+          _buildSearchBar(context, lp),
         ],
       ),
     );
   }
 
-  Widget _buildSearchBar(BuildContext context) {
+  Widget _buildLanguageToggle(LanguageProvider lp) {
+    return GestureDetector(
+      onTap: () => lp.toggleLanguage(),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.2),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.white30),
+        ),
+        child: Row(
+          children: [
+            const Icon(LucideIcons.languages, color: Colors.white, size: 16),
+            const SizedBox(width: 8),
+            Text(
+              lp.isHindi ? "English" : "हिन्दी",
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSearchBar(BuildContext context, LanguageProvider lp) {
     return GestureDetector(
       onTap: () {
         Navigator.push(context, MaterialPageRoute(builder: (context) => const MedicineSearchScreen())).then((_) => _refresh());
@@ -202,18 +244,21 @@ class _HomeDashboardState extends State<HomeDashboard> {
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: Colors.white.withOpacity(0.1)),
         ),
-        child: const Row(
+        child: Row(
           children: [
-            Icon(LucideIcons.search, color: Colors.white, size: 20),
+            const Icon(LucideIcons.search, color: Colors.white, size: 20),
             const SizedBox(width: 12),
-            const Text("Search 30+ medicines...", style: TextStyle(color: Colors.white70, fontSize: 15)),
+            Text(
+              lp.translate("Search medicines...", "दवाएं खोजें..."), 
+              style: const TextStyle(color: Colors.white70, fontSize: 15)
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildStatsRow() {
+  Widget _buildStatsRow(LanguageProvider lp) {
     return FutureBuilder<Map<String, int>>(
       future: _getStats(),
       builder: (context, snapshot) {
@@ -223,7 +268,7 @@ class _HomeDashboardState extends State<HomeDashboard> {
         return Row(
           children: [
             _buildStatItem(
-              "Active Meds", 
+              lp.translate("Active Meds", "सक्रिय दवाएं"), 
               total.toString(), 
               LucideIcons.pill, 
               Colors.blue,
@@ -231,7 +276,7 @@ class _HomeDashboardState extends State<HomeDashboard> {
             ),
             const SizedBox(width: 12),
             _buildStatItem(
-              "Expiring", 
+              lp.translate("Expiring", "समाप्त हो रही"), 
               expiring.toString(), 
               LucideIcons.alertCircle, 
               expiring > 0 ? Colors.orange : Colors.green,
@@ -273,7 +318,7 @@ class _HomeDashboardState extends State<HomeDashboard> {
     );
   }
 
-Widget _buildScanCard(BuildContext context) {
+Widget _buildScanCard(BuildContext context, LanguageProvider lp) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -298,16 +343,16 @@ Widget _buildScanCard(BuildContext context) {
                   child: const Icon(LucideIcons.scanLine, color: MedVerifyTheme.primaryBlue, size: 24),
                 ),
                 const SizedBox(width: 16),
-                const Column(
+                Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      "Verify Medicine", // Changed from Quick Scan
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1A1C1E))
+                      lp.translate("Verify Medicine", "दवा सत्यापित करें"), 
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1A1C1E))
                     ),
                     Text(
-                      "Scan barcode or product text",
-                      style: TextStyle(fontSize: 12, color: Colors.grey)
+                      lp.translate("Scan barcode or product text", "बारकोड या उत्पाद टेक्स्ट स्कैन करें"),
+                      style: const TextStyle(fontSize: 12, color: Colors.grey)
                     ),
                   ],
                 ),
@@ -321,7 +366,7 @@ Widget _buildScanCard(BuildContext context) {
     );
   }
 
-  Widget _buildPrescriptionQuickAction(BuildContext context) {
+  Widget _buildPrescriptionQuickAction(BuildContext context, LanguageProvider lp) {
     return Container(
       decoration: BoxDecoration(
         color: MedVerifyTheme.primaryBlue,
@@ -343,11 +388,17 @@ Widget _buildScanCard(BuildContext context) {
                   child: const Icon(LucideIcons.fileText, color: Colors.white, size: 24),
                 ),
                 const SizedBox(width: 16),
-                const Column(
+                Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text("Scan Prescription", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                    Text("Bulk add medicines at once", style: TextStyle(color: Colors.white70, fontSize: 12)),
+                    Text(
+                      lp.translate("Scan Prescription", "पर्चा स्कैन करें"), 
+                      style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)
+                    ),
+                    Text(
+                      lp.translate("Bulk add medicines at once", "एक साथ कई दवाएं जोड़ें"), 
+                      style: const TextStyle(color: Colors.white70, fontSize: 12)
+                    ),
                   ],
                 ),
                 const Spacer(),
@@ -360,14 +411,14 @@ Widget _buildScanCard(BuildContext context) {
     );
   }
 
-  Widget _buildMedicineCarousel(BuildContext context) {
+  Widget _buildMedicineCarousel(BuildContext context, LanguageProvider lp) {
     return SizedBox(
       height: 160,
       child: FutureBuilder<List<Map<String, dynamic>>>(
         future: LocalStorage.getCabinet(),
         builder: (context, snapshot) {
           if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return _buildEmptyCarousel();
+            return _buildEmptyCarousel(lp);
           }
           final medicines = snapshot.data!.reversed.toList();
           return ListView.builder(
@@ -375,7 +426,7 @@ Widget _buildScanCard(BuildContext context) {
             itemCount: medicines.length > 5 ? 5 : medicines.length,
             itemBuilder: (context, index) {
               final med = medicines[index];
-              return _buildMedicineCard(context, med['name'] ?? "Unknown", med['dosage'] ?? "", med['code'] ?? "");
+              return _buildMedicineCard(context, med['name'] ?? "Unknown", med['dosage'] ?? "", med['code'] ?? "", lp);
             },
           );
         },
@@ -383,7 +434,7 @@ Widget _buildScanCard(BuildContext context) {
     );
   }
 
-  Widget _buildMedicineCard(BuildContext context, String name, String dose, String code) {
+  Widget _buildMedicineCard(BuildContext context, String name, String dose, String code, LanguageProvider lp) {
     return Container(
       width: 160, 
       margin: const EdgeInsets.only(right: 16, bottom: 4),
@@ -432,9 +483,9 @@ Widget _buildScanCard(BuildContext context) {
                   color: const Color(0xFFF1F4FF),
                   borderRadius: BorderRadius.circular(6),
                 ),
-                child: const Text(
-                  "VERIFIED",
-                  style: TextStyle(
+                child: Text(
+                  lp.translate("VERIFIED", "सत्यापित"),
+                  style: const TextStyle(
                     color: MedVerifyTheme.primaryBlue,
                     fontSize: 9,
                     fontWeight: FontWeight.w900,
@@ -449,7 +500,7 @@ Widget _buildScanCard(BuildContext context) {
     );
   }
 
-  Widget _buildEmptyCarousel() {
+  Widget _buildEmptyCarousel(LanguageProvider lp) {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -457,11 +508,16 @@ Widget _buildScanCard(BuildContext context) {
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: Colors.black.withOpacity(0.05)),
       ),
-      child: const Center(child: Text("Add your first medicine", style: TextStyle(color: Colors.grey))),
+      child: Center(
+        child: Text(
+          lp.translate("Add your first medicine", "अपनी पहली दवा जोड़ें"), 
+          style: const TextStyle(color: Colors.grey)
+        )
+      ),
     );
   }
 
-  Widget _buildSectionHeader(BuildContext context, String title, {bool showViewAll = false}) {
+  Widget _buildSectionHeader(BuildContext context, String title, {bool showViewAll = false, required LanguageProvider lp}) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -469,18 +525,21 @@ Widget _buildScanCard(BuildContext context) {
         if (showViewAll)
           TextButton(
             onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const MedicineCabinetScreen())).then((_) => _refresh()),
-            child: const Text("View All", style: TextStyle(color: MedVerifyTheme.primaryBlue, fontWeight: FontWeight.bold, fontSize: 13)),
+            child: Text(
+              lp.translate("View All", "सभी देखें"), 
+              style: const TextStyle(color: MedVerifyTheme.primaryBlue, fontWeight: FontWeight.bold, fontSize: 13)
+            ),
           ),
       ],
     );
   }
 
-  Widget _buildSafetyAlerts() {
+  Widget _buildSafetyAlerts(LanguageProvider lp) {
     return Column(
       children: [
-        _buildAlertItem("Drug Recall Alert", "Urgent", const Color(0xFFFFEFEF), Colors.red, LucideIcons.alertTriangle, () => _showRecallDialog(context)),
+        _buildAlertItem(lp.translate("Drug Recall Alert", "दवा रिकॉल अलर्ट"), lp.translate("Urgent", "अति आवश्यक"), const Color(0xFFFFEFEF), Colors.red, LucideIcons.alertTriangle, () => _showRecallDialog(context, lp)),
         const SizedBox(height: 12),
-        _buildAlertItem("Health Tip", "New", const Color(0xFFF0F6FF), MedVerifyTheme.primaryBlue, LucideIcons.info, () => _showHealthTipDialog(context)),
+        _buildAlertItem(lp.translate("Health Tip", "स्वास्थ्य टिप"), lp.translate("New", "नया"), const Color(0xFFF0F6FF), MedVerifyTheme.primaryBlue, LucideIcons.info, () => _showHealthTipDialog(context, lp)),
       ],
     );
   }

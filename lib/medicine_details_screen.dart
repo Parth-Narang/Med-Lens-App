@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:intl/intl.dart'; 
+import 'package:provider/provider.dart'; // Added Provider
 import '../theme.dart';
 import '../services/local_storage.dart';
 import '../services/medicine_data.dart';
 import '../services/alert_service.dart'; 
+import '../services/language_provider.dart'; // Import Language Provider
 
 class MedicineDetailsScreen extends StatefulWidget {
   final String medicineCode;
@@ -40,7 +42,6 @@ class _MedicineDetailsScreenState extends State<MedicineDetailsScreen> {
   void initState() {
     super.initState();
     
-    // Logic to replace any "Check Packaging" or null values with a simple dash
     String initialBatch = (widget.scannedBatch == null || widget.scannedBatch == "Check Packaging" || widget.scannedBatch!.isEmpty) 
         ? "-" 
         : widget.scannedBatch!;
@@ -114,7 +115,6 @@ class _MedicineDetailsScreenState extends State<MedicineDetailsScreen> {
     }
   }
 
-  // Updated medInfo to use dashes for missing fields
   Map<String, dynamic> get _medInfo => 
       MedicineData.lookup(widget.medicineCode) ?? {
         "uses": "-",
@@ -136,7 +136,7 @@ class _MedicineDetailsScreenState extends State<MedicineDetailsScreen> {
     }
   }
 
-  void _showSuccessDialog(BuildContext context, String medName) {
+  void _showSuccessDialog(BuildContext context, String medName, LanguageProvider lp) {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -148,9 +148,13 @@ class _MedicineDetailsScreenState extends State<MedicineDetailsScreen> {
             children: [
               const Icon(LucideIcons.checkCircle, color: Colors.green, size: 64),
               const SizedBox(height: 16),
-              const Text("Success!", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+              Text(lp.translate("Success!", "सफलता!"), style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
-              Text("$medName added. Reminder set for ${_selectedTime.format(context)}.",
+              Text(
+                  lp.translate(
+                    "$medName added. Reminder set for ${_selectedTime.format(context)}.", 
+                    "$medName जोड़ दिया गया। रिमाइन्डर ${_selectedTime.format(context)} के लिए सेट है।"
+                  ),
                   textAlign: TextAlign.center, style: const TextStyle(color: Colors.grey)),
               const SizedBox(height: 24),
               SizedBox(
@@ -161,7 +165,7 @@ class _MedicineDetailsScreenState extends State<MedicineDetailsScreen> {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   onPressed: () => Navigator.of(context).popUntil((route) => route.isFirst),
-                  child: const Text("OK", style: TextStyle(color: Colors.white)),
+                  child: Text(lp.translate("OK", "ठीक है"), style: const TextStyle(color: Colors.white)),
                 ),
               ),
             ],
@@ -173,6 +177,8 @@ class _MedicineDetailsScreenState extends State<MedicineDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final lp = Provider.of<LanguageProvider>(context);
+
     return Scaffold(
       backgroundColor: MedVerifyTheme.bgGray,
       appBar: AppBar(
@@ -191,17 +197,17 @@ class _MedicineDetailsScreenState extends State<MedicineDetailsScreen> {
           children: [
             _buildMainInfoCard(widget.medicineName),
             const SizedBox(height: 20),
-            _buildTimeSelectionCard(),
+            _buildTimeSelectionCard(lp),
             const SizedBox(height: 20),
-            _buildDetailSection("Uses", _medInfo['uses'], LucideIcons.stethoscope, bulletColor: MedVerifyTheme.primaryBlue),
+            _buildDetailSection(lp.translate("Uses", "उपयोग"), _medInfo['uses'], LucideIcons.stethoscope, bulletColor: MedVerifyTheme.primaryBlue),
             const SizedBox(height: 12),
-            _buildDetailSection("Advised Dosage", _medInfo['dosage'], LucideIcons.clock, bulletColor: MedVerifyTheme.primaryBlue),
+            _buildDetailSection(lp.translate("Advised Dosage", "सलाह दी गई खुराक"), _medInfo['dosage'], LucideIcons.clock, bulletColor: MedVerifyTheme.primaryBlue),
             const SizedBox(height: 20),
-            _buildSideEffectsCard(_medInfo['sideEffects']), 
+            _buildSideEffectsCard(_medInfo['sideEffects'], lp), 
             const SizedBox(height: 20),
-            _buildSafetyStatus(), 
+            _buildSafetyStatus(lp), 
             const SizedBox(height: 20),
-            _buildInteractionWarning(_medInfo['warning']), 
+            _buildInteractionWarning(_medInfo['warning'], lp), 
             const SizedBox(height: 32),
 
             SizedBox(
@@ -211,7 +217,6 @@ class _MedicineDetailsScreenState extends State<MedicineDetailsScreen> {
                 onPressed: () async {
                   await AlertService.showInstantTestNotification();
 
-                  // Save logic now ensures empty inputs become "-"
                   Map<String, String> medicineData = {
                     "name": widget.medicineName,
                     "dosage": widget.dosage,
@@ -244,14 +249,14 @@ class _MedicineDetailsScreenState extends State<MedicineDetailsScreen> {
                     }
                   }
 
-                  if (context.mounted) _showSuccessDialog(context, widget.medicineName);
+                  if (context.mounted) _showSuccessDialog(context, widget.medicineName, lp);
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: MedVerifyTheme.primaryBlue,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 ),
-                child: const Text("Add to My Cabinet",
-                    style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                child: Text(lp.translate("Add to My Cabinet", "मेरे कैबिनेट में जोड़ें"),
+                    style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
               ),
             ),
           ],
@@ -260,7 +265,7 @@ class _MedicineDetailsScreenState extends State<MedicineDetailsScreen> {
     );
   }
 
-  Widget _buildSafetyStatus() {
+  Widget _buildSafetyStatus(LanguageProvider lp) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -271,15 +276,15 @@ class _MedicineDetailsScreenState extends State<MedicineDetailsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildStatusRow(LucideIcons.shieldCheck, "Authenticity", 
-              widget.isAuthentic ? "Verified Genuine" : "Product Identified", 
+          _buildStatusRow(LucideIcons.shieldCheck, lp.translate("Authenticity", "प्रमाणिकता"), 
+              widget.isAuthentic ? lp.translate("Verified Genuine", "असली सत्यापित") : lp.translate("Product Identified", "उत्पाद की पहचान"), 
               widget.isAuthentic ? Colors.green : Colors.blueGrey),
           const Divider(height: 32),
-          const Text("Verification Details", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey, fontSize: 12)),
+          Text(lp.translate("Verification Details", "सत्यापन विवरण"), style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey, fontSize: 12)),
           const SizedBox(height: 16),
           _buildEditableRow(
             icon: LucideIcons.calendar, 
-            label: "Expiry Date", 
+            label: lp.translate("Expiry Date", "समाप्ति तिथि"), 
             controller: _expiryController,
             onAction: _pickExpiryDate,
             actionIcon: LucideIcons.calendarDays,
@@ -287,7 +292,7 @@ class _MedicineDetailsScreenState extends State<MedicineDetailsScreen> {
           const SizedBox(height: 16),
           _buildEditableRow(
             icon: LucideIcons.package, 
-            label: "Batch Number", 
+            label: lp.translate("Batch Number", "बैच संख्या"), 
             controller: _batchController,
           ),
         ],
@@ -338,8 +343,7 @@ class _MedicineDetailsScreenState extends State<MedicineDetailsScreen> {
     return Row(children: [Icon(icon, size: 20, color: Colors.grey), const SizedBox(width: 12), Text(label, style: const TextStyle(color: Colors.grey)), const Spacer(), Text(value, style: TextStyle(fontWeight: FontWeight.bold, color: valueColor))]);
   }
 
-  // --- REST OF UI HELPERS ---
-  Widget _buildTimeSelectionCard() {
+  Widget _buildTimeSelectionCard(LanguageProvider lp) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
@@ -353,7 +357,7 @@ class _MedicineDetailsScreenState extends State<MedicineDetailsScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text("Remind Me At", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                  Text(lp.translate("Remind Me At", "मुझे याद दिलाएं"), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                   Text(_selectedTime.format(context), style: const TextStyle(color: Colors.grey, fontSize: 12)),
                 ],
               ),
@@ -361,7 +365,7 @@ class _MedicineDetailsScreenState extends State<MedicineDetailsScreen> {
           ),
           TextButton(
             onPressed: _pickTime,
-            child: const Text("Change Time", style: TextStyle(color: MedVerifyTheme.primaryBlue, fontWeight: FontWeight.bold)),
+            child: Text(lp.translate("Change Time", "समय बदलें"), style: const TextStyle(color: MedVerifyTheme.primaryBlue, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -385,7 +389,7 @@ class _MedicineDetailsScreenState extends State<MedicineDetailsScreen> {
     );
   }
 
-  Widget _buildSideEffectsCard(String sideEffect) {
+  Widget _buildSideEffectsCard(String sideEffect, LanguageProvider lp) {
     List<String> effects = sideEffect.split(RegExp(r'[,|\n]'));
     return Container(
       padding: const EdgeInsets.all(16),
@@ -394,7 +398,7 @@ class _MedicineDetailsScreenState extends State<MedicineDetailsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(children: [Icon(LucideIcons.thermometer, color: Colors.orange, size: 20), SizedBox(width: 12), Text("Common Side Effects", style: TextStyle(fontWeight: FontWeight.bold))]),
+          Row(children: [const Icon(LucideIcons.thermometer, color: Colors.orange, size: 20), const SizedBox(width: 12), Text(lp.translate("Common Side Effects", "सामान्य दुष्प्रभाव"), style: const TextStyle(fontWeight: FontWeight.bold))]),
           const SizedBox(height: 16),
           ...effects.where((e) => e.trim().isNotEmpty).map((effect) => _bulletPoint(effect.trim(), Colors.orange)),
         ],
@@ -409,11 +413,11 @@ class _MedicineDetailsScreenState extends State<MedicineDetailsScreen> {
     );
   }
 
-  Widget _buildInteractionWarning(String warningText) {
+  Widget _buildInteractionWarning(String warningText, LanguageProvider lp) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(color: MedVerifyTheme.warningRed.withOpacity(0.1), borderRadius: BorderRadius.circular(24), border: Border.all(color: MedVerifyTheme.warningRed.withOpacity(0.3))),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Row(children: [Icon(LucideIcons.alertTriangle, color: MedVerifyTheme.warningRed), SizedBox(width: 8), Text("Drug Interaction Warning", style: TextStyle(color: MedVerifyTheme.warningRed, fontWeight: FontWeight.bold))]), const SizedBox(height: 12), Text(warningText, style: const TextStyle(color: Colors.black87, fontSize: 14, height: 1.4))]),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(children: [const Icon(LucideIcons.alertTriangle, color: MedVerifyTheme.warningRed), const SizedBox(width: 8), Text(lp.translate("Interaction Warning", "परस्पर क्रिया चेतावनी"), style: const TextStyle(color: MedVerifyTheme.warningRed, fontWeight: FontWeight.bold))]), const SizedBox(height: 12), Text(warningText, style: const TextStyle(color: Colors.black87, fontSize: 14, height: 1.4))]),
     );
   }
 }

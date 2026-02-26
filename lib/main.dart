@@ -4,11 +4,17 @@ import 'package:flutter_displaymode/flutter_displaymode.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
-import 'package:lucide_icons/lucide_icons.dart'; // Added for modern icons
+import 'package:lucide_icons/lucide_icons.dart';
+import 'package:provider/provider.dart';
+
+// Import screens
 import 'screens/home_dashboard.dart';
 import 'screens/medicine_cabinet_screen.dart';
 import 'screens/scanner_screen.dart';
-import 'screens/prescription_screen.dart'; // Import the new screen
+import 'screens/prescription_screen.dart';
+
+// Import services
+import 'services/language_provider.dart';
 
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
 final RouteObserver<ModalRoute<void>> routeObserver = RouteObserver<ModalRoute<void>>();
@@ -28,7 +34,12 @@ void main() async {
   
   await setMaxRefreshRate();
   
-  runApp(const MedVerifyApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (context) => LanguageProvider(),
+      child: const MedVerifyApp(),
+    ),
+  );
 }
 
 Future<void> _createNotificationChannels() async {
@@ -103,31 +114,26 @@ class ScreenSwitcher extends StatefulWidget {
 
 class _ScreenSwitcherState extends State<ScreenSwitcher> {
   int _selectedIndex = 0;
-  Key _cabinetKey = UniqueKey();
-  Key _homeKey = UniqueKey();
-  Key _prescriptionKey = UniqueKey();
+
+  // Screens are kept in a list to preserve their state without using UniqueKeys
+  final List<Widget> _screens = [
+    const HomeDashboard(),
+    const SizedBox.shrink(), // Placeholder for Scan button
+    const PrescriptionScreen(), 
+    const MedicineCabinetScreen(),
+  ];
 
   void _onItemTapped(int index) {
+    // If "Scan" is clicked, open Scanner Screen as a Full-Screen Modal
     if (index == 1) {
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => const ScannerScreen()),
-      ).then((_) {
-        setState(() {
-          _homeKey = UniqueKey();
-          _cabinetKey = UniqueKey();
-          _prescriptionKey = UniqueKey();
-        });
-      });
+      );
     } else {
-      if (_selectedIndex != index) {
-        setState(() {
-          _selectedIndex = index;
-          if (index == 0) _homeKey = UniqueKey();
-          if (index == 2) _prescriptionKey = UniqueKey();
-          if (index == 3) _cabinetKey = UniqueKey();
-        });
-      }
+      setState(() {
+        _selectedIndex = index;
+      });
     }
   }
 
@@ -136,27 +142,36 @@ class _ScreenSwitcherState extends State<ScreenSwitcher> {
     return Scaffold(
       body: IndexedStack(
         index: _selectedIndex, 
-        children: [
-          HomeDashboard(key: _homeKey),
-          const SizedBox.shrink(), 
-          PrescriptionScreen(key: _prescriptionKey), 
-          MedicineCabinetScreen(key: _cabinetKey),
-        ],
+        children: _screens,
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
-        selectedItemColor: const Color(0xFF2260FF),
-        unselectedItemColor: Colors.grey,
-        type: BottomNavigationBarType.fixed,
-        // REMOVED 'const' from items to allow LucideIcons
-        items: [
-          const BottomNavigationBarItem(icon: Icon(LucideIcons.home), label: 'Home'),
-          const BottomNavigationBarItem(icon: Icon(LucideIcons.scanLine), label: 'Scan'),
-          const BottomNavigationBarItem(icon: Icon(LucideIcons.fileText), label: 'Prescription'),
-          // Changed 'inventory' to 'package' which exists in Lucide
-          const BottomNavigationBarItem(icon: Icon(LucideIcons.package), label: 'Cabinet'),
-        ],
+      bottomNavigationBar: Consumer<LanguageProvider>(
+        builder: (context, lp, child) {
+          return BottomNavigationBar(
+            currentIndex: _selectedIndex,
+            onTap: _onItemTapped,
+            selectedItemColor: const Color(0xFF2260FF),
+            unselectedItemColor: Colors.grey,
+            type: BottomNavigationBarType.fixed,
+            items: [
+              BottomNavigationBarItem(
+                icon: const Icon(LucideIcons.home), 
+                label: lp.translate('Home', 'होम')
+              ),
+              BottomNavigationBarItem(
+                icon: const Icon(LucideIcons.scanLine), 
+                label: lp.translate('Scan', 'स्कैन')
+              ),
+              BottomNavigationBarItem(
+                icon: const Icon(LucideIcons.fileText), 
+                label: lp.translate('Prescription', 'पर्चा')
+              ),
+              BottomNavigationBarItem(
+                icon: const Icon(LucideIcons.package), 
+                label: lp.translate('Cabinet', 'कैबिनेट')
+              ),
+            ],
+          );
+        },
       ),
     );
   }

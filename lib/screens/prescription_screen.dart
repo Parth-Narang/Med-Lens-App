@@ -4,10 +4,12 @@ import 'package:google_ml_kit/google_ml_kit.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart'; // Added Provider
 import '../theme.dart';
 import '../services/medicine_data.dart';
 import '../services/local_storage.dart';
 import '../services/alert_service.dart';
+import '../services/language_provider.dart'; // Ensure this matches your file path
 
 class PrescriptionScreen extends StatefulWidget {
   const PrescriptionScreen({super.key});
@@ -20,7 +22,7 @@ class _PrescriptionScreenState extends State<PrescriptionScreen> {
   List<Map<String, dynamic>> _foundMedicines = [];
   bool _isProcessing = false;
 
-  Future<void> _scanPrescription() async {
+  Future<void> _scanPrescription(LanguageProvider lp) async {
     final ImagePicker picker = ImagePicker();
     final XFile? image = await picker.pickImage(source: ImageSource.camera);
     if (image == null) return;
@@ -65,7 +67,7 @@ class _PrescriptionScreenState extends State<PrescriptionScreen> {
     setState(() => _foundMedicines[index]['expiry'] = date);
   }
 
-  Future<void> _saveAll() async {
+  Future<void> _saveAll(LanguageProvider lp) async {
     for (var med in _foundMedicines) {
       Map<String, String> data = {
         "name": med['name'],
@@ -90,13 +92,15 @@ class _PrescriptionScreenState extends State<PrescriptionScreen> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("${_foundMedicines.length} medicines added to Cabinet"),
+          content: Text(lp.translate(
+            "${_foundMedicines.length} medicines added to Cabinet",
+            "${_foundMedicines.length} दवाएं कैबिनेट में जोड़ी गईं"
+          )),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           backgroundColor: MedVerifyTheme.primaryBlue,
         )
       );
-      // Using a slight delay to let the user see the result before popping
       Future.delayed(const Duration(milliseconds: 500), () {
         if (mounted) Navigator.of(context).pop();
       });
@@ -105,26 +109,28 @@ class _PrescriptionScreenState extends State<PrescriptionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final lp = Provider.of<LanguageProvider>(context);
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FE),
       body: Column(
         children: [
-          _buildHeader(),
+          _buildHeader(lp),
           Expanded(
             child: _isProcessing 
               ? const Center(child: CircularProgressIndicator(color: MedVerifyTheme.primaryBlue))
               : _foundMedicines.isEmpty 
-                ? _buildEmptyState() 
-                : _buildMedicineList(),
+                ? _buildEmptyState(lp) 
+                : _buildMedicineList(lp),
           ),
         ],
       ),
       floatingActionButton: _foundMedicines.isNotEmpty 
         ? FloatingActionButton.extended(
-            onPressed: _saveAll,
+            onPressed: () => _saveAll(lp),
             elevation: 4,
             label: Text(
-              "Add All to Cabinet",
+              lp.translate("Add All to Cabinet", "सभी को कैबिनेट में जोड़ें"),
               style: GoogleFonts.plusJakartaSans(
                 color: Colors.white, 
                 fontWeight: FontWeight.bold,
@@ -139,7 +145,7 @@ class _PrescriptionScreenState extends State<PrescriptionScreen> {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(LanguageProvider lp) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.only(left: 24, right: 24, top: 60, bottom: 40),
@@ -151,7 +157,7 @@ class _PrescriptionScreenState extends State<PrescriptionScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            "Prescription Scan",
+            lp.translate("Prescription Scan", "पर्चा स्कैन"),
             style: GoogleFonts.plusJakartaSans(
               fontSize: 26,
               fontWeight: FontWeight.w800,
@@ -159,16 +165,16 @@ class _PrescriptionScreenState extends State<PrescriptionScreen> {
             ),
           ),
           const SizedBox(height: 4),
-          const Text(
-            "Bulk-identify medications from documents",
-            style: TextStyle(color: Colors.white70, fontSize: 14),
+          Text(
+            lp.translate("Bulk-identify medications from documents", "दस्तावेजों से थोक में दवाओं की पहचान करें"),
+            style: const TextStyle(color: Colors.white70, fontSize: 14),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(LanguageProvider lp) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32.0),
@@ -186,7 +192,7 @@ class _PrescriptionScreenState extends State<PrescriptionScreen> {
             ),
             const SizedBox(height: 24),
             Text(
-              "No items detected yet",
+              lp.translate("No items detected yet", "अभी तक कोई वस्तु नहीं मिली"),
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 18, 
                 fontWeight: FontWeight.bold,
@@ -194,19 +200,22 @@ class _PrescriptionScreenState extends State<PrescriptionScreen> {
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
-              "Scan a medical prescription to add\nmultiple items automatically.",
+            Text(
+              lp.translate(
+                "Scan a medical prescription to add\nmultiple items automatically.",
+                "स्वचालित रूप से कई वस्तुओं को जोड़ने के लिए\nएक चिकित्सा पर्चा स्कैन करें।"
+              ),
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey, height: 1.5),
+              style: const TextStyle(color: Colors.grey, height: 1.5),
             ),
             const SizedBox(height: 32),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: _scanPrescription, 
+                onPressed: () => _scanPrescription(lp), 
                 icon: const Icon(LucideIcons.camera, color: Colors.white, size: 20),
                 label: Text(
-                  "Capture Prescription", 
+                  lp.translate("Capture Prescription", "पर्चा कैप्चर करें"), 
                   style: GoogleFonts.plusJakartaSans(color: Colors.white, fontWeight: FontWeight.bold)
                 ),
                 style: ElevatedButton.styleFrom(
@@ -223,7 +232,7 @@ class _PrescriptionScreenState extends State<PrescriptionScreen> {
     );
   }
 
-  Widget _buildMedicineList() {
+  Widget _buildMedicineList(LanguageProvider lp) {
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
       itemCount: _foundMedicines.length,
@@ -253,8 +262,11 @@ class _PrescriptionScreenState extends State<PrescriptionScreen> {
             subtitle: Padding(
               padding: const EdgeInsets.only(top: 4),
               child: Text(
-                "Expiry: ${med['expiry']}",
-                style: TextStyle(color: med['expiry'] == "-" ? Colors.grey : MedVerifyTheme.primaryBlue, fontWeight: med['expiry'] == "-" ? FontWeight.normal : FontWeight.bold),
+                "${lp.translate("Expiry", "समाप्ति")}: ${med['expiry']}",
+                style: TextStyle(
+                  color: med['expiry'] == "-" ? Colors.grey : MedVerifyTheme.primaryBlue, 
+                  fontWeight: med['expiry'] == "-" ? FontWeight.normal : FontWeight.bold
+                ),
               ),
             ),
             trailing: Container(

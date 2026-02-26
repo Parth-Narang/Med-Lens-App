@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:provider/provider.dart'; // Added for state management
 import '../theme.dart';
 import '../services/local_storage.dart';
+import '../services/language_provider.dart'; // Ensure this matches your file path
 import '../medicine_details_screen.dart';
 import '../main.dart'; 
 
@@ -63,21 +65,29 @@ class _MedicineCabinetScreenState extends State<MedicineCabinetScreen> with Rout
     }
   }
 
-  Future<bool> _showDeleteDialog(BuildContext context, String medName) async {
+  Future<bool> _showDeleteDialog(BuildContext context, String medName, LanguageProvider lp) async {
     return await showDialog(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: Text("Remove Medicine?", style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold)),
-        content: Text("Are you sure you want to remove $medName?"),
+        title: Text(
+          lp.translate("Remove Medicine?", "दवा हटाएँ?"), 
+          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold)
+        ),
+        content: Text(
+          lp.translate("Are you sure you want to remove $medName?", "क्या आप वाकई $medName को हटाना चाहते हैं?")
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
+            child: Text(lp.translate("Cancel", "रद्द करें"), style: const TextStyle(color: Colors.grey)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text("Remove", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+            child: Text(
+              lp.translate("Remove", "हटाएं"), 
+              style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)
+            ),
           ),
         ],
       ),
@@ -86,12 +96,13 @@ class _MedicineCabinetScreenState extends State<MedicineCabinetScreen> with Rout
 
   @override
   Widget build(BuildContext context) {
+    final lp = Provider.of<LanguageProvider>(context);
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FE),
       body: Column(
         children: [
-          // PREMIUM RECTANGULAR HEADER
-          _buildHeader(),
+          _buildHeader(lp),
           
           Expanded(
             child: FutureBuilder<List<Map<String, dynamic>>>(
@@ -101,7 +112,7 @@ class _MedicineCabinetScreenState extends State<MedicineCabinetScreen> with Rout
                   return const Center(child: CircularProgressIndicator(color: MedVerifyTheme.primaryBlue));
                 }
                 if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return _buildEmptyState();
+                  return _buildEmptyState(lp);
                 }
 
                 final medicines = snapshot.data!.reversed.toList();
@@ -114,7 +125,7 @@ class _MedicineCabinetScreenState extends State<MedicineCabinetScreen> with Rout
                       (key, value) => MapEntry(key, value.toString()),
                     );
                     final int originalIndex = (snapshot.data!.length - 1) - index;
-                    return _buildCabinetItem(context, med, originalIndex);
+                    return _buildCabinetItem(context, med, originalIndex, lp);
                   },
                 );
               },
@@ -125,19 +136,19 @@ class _MedicineCabinetScreenState extends State<MedicineCabinetScreen> with Rout
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(LanguageProvider lp) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.only(left: 24, right: 24, top: 60, bottom: 40),
       decoration: const BoxDecoration(
         color: MedVerifyTheme.primaryBlue,
-        borderRadius: BorderRadius.zero, // Rectangular edges
+        borderRadius: BorderRadius.zero,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            "My Medicine Cabinet",
+            lp.translate("My Medicine Cabinet", "मेरी दवा कैबिनेट"),
             style: GoogleFonts.plusJakartaSans(
               fontSize: 26,
               fontWeight: FontWeight.w800,
@@ -145,16 +156,16 @@ class _MedicineCabinetScreenState extends State<MedicineCabinetScreen> with Rout
             ),
           ),
           const SizedBox(height: 4),
-          const Text(
-            "Manage your active prescriptions",
-            style: TextStyle(color: Colors.white70, fontSize: 14),
+          Text(
+            lp.translate("Manage your active prescriptions", "अपने सक्रिय नुस्खों का प्रबंधन करें"),
+            style: const TextStyle(color: Colors.white70, fontSize: 14),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildCabinetItem(BuildContext context, Map<String, String> med, int storageIndex) {
+  Widget _buildCabinetItem(BuildContext context, Map<String, String> med, int storageIndex, LanguageProvider lp) {
     bool isDone = _completedDosages[storageIndex] ?? false;
     String expiryDisplay = (med['expiry'] == null || med['expiry']!.isEmpty) ? "-" : med['expiry']!;
     Color statusColor = _getExpiryColor(expiryDisplay);
@@ -227,7 +238,7 @@ class _MedicineCabinetScreenState extends State<MedicineCabinetScreen> with Rout
                           Icon(LucideIcons.calendar, size: 12, color: statusColor),
                           const SizedBox(width: 4),
                           Text(
-                            "Expires: $expiryDisplay",
+                            "${lp.translate("Expires", "समाप्ति")}: $expiryDisplay",
                             style: TextStyle(
                               fontSize: 12, 
                               color: statusColor, 
@@ -242,7 +253,7 @@ class _MedicineCabinetScreenState extends State<MedicineCabinetScreen> with Rout
                 IconButton(
                   icon: const Icon(LucideIcons.trash2, color: Color.fromARGB(255, 255, 1, 1), size: 20),
                   onPressed: () async {
-                    bool confirm = await _showDeleteDialog(context, med['name'] ?? "this medicine");
+                    bool confirm = await _showDeleteDialog(context, med['name'] ?? "this medicine", lp);
                     if (confirm) {
                       if (med.containsKey('code')) {
                         int medId = med['code']!.hashCode;
@@ -262,7 +273,7 @@ class _MedicineCabinetScreenState extends State<MedicineCabinetScreen> with Rout
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(LanguageProvider lp) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -270,10 +281,13 @@ class _MedicineCabinetScreenState extends State<MedicineCabinetScreen> with Rout
           Icon(LucideIcons.packageSearch, size: 64, color: Colors.grey[300]),
           const SizedBox(height: 16),
           Text(
-            "No medicines found", 
+            lp.translate("No medicines found", "कोई दवा नहीं मिली"), 
             style: GoogleFonts.plusJakartaSans(color: Colors.grey, fontSize: 16, fontWeight: FontWeight.w600)
           ),
-          const Text("Your cabinet is currently empty", style: TextStyle(color: Colors.grey, fontSize: 13)),
+          Text(
+            lp.translate("Your cabinet is currently empty", "आपकी कैबिनेट वर्तमान में खाली है"), 
+            style: const TextStyle(color: Colors.grey, fontSize: 13)
+          ),
         ],
       ),
     );

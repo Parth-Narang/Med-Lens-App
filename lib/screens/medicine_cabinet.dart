@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:provider/provider.dart'; // Added Provider for global state
 import '../theme.dart';
 import '../services/local_storage.dart';
+import '../services/language_provider.dart'; // Ensure this matches your file path
 
 class MedicineCabinet extends StatefulWidget {
   const MedicineCabinet({super.key});
@@ -13,26 +15,29 @@ class MedicineCabinet extends StatefulWidget {
 class _MedicineCabinetState extends State<MedicineCabinet> {
   @override
   Widget build(BuildContext context) {
+    // Access the global LanguageProvider
+    final lp = Provider.of<LanguageProvider>(context);
+
     return Scaffold(
       backgroundColor: MedVerifyTheme.bgGray,
       appBar: AppBar(
-        title: const Text(
-          "My Cabinet",
-          style: TextStyle(fontWeight: FontWeight.bold),
+        title: Text(
+          lp.translate("My Cabinet", "मेरी कैबिनेट"),
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: false,
       ),
       body: FutureBuilder<List<Map<String, dynamic>>>(
-        future: LocalStorage.getCabinet(), // Grabs the "notebook" data
+        future: LocalStorage.getCabinet(), 
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
 
           if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return _buildEmptyState();
+            return _buildEmptyState(lp);
           }
 
           final meds = snapshot.data!;
@@ -42,7 +47,7 @@ class _MedicineCabinetState extends State<MedicineCabinet> {
             itemCount: meds.length,
             itemBuilder: (context, index) {
               final med = meds[index];
-              return _buildMedicineCard(med, index);
+              return _buildMedicineCard(med, index, lp);
             },
           );
         },
@@ -51,24 +56,24 @@ class _MedicineCabinetState extends State<MedicineCabinet> {
   }
 
   // UI for when the cabinet is empty
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(LanguageProvider lp) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(LucideIcons.archive, size: 80, color: Colors.grey[300]),
           const SizedBox(height: 16),
-          const Text(
-            "Your cabinet is empty",
-            style: TextStyle(
+          Text(
+            lp.translate("Your cabinet is empty", "आपकी कैबिनेट खाली है"),
+            style: const TextStyle(
               fontSize: 18,
               color: Colors.grey,
               fontWeight: FontWeight.w500,
             ),
           ),
-          const Text(
-            "Scan a medicine to add it here",
-            style: TextStyle(color: Colors.grey),
+          Text(
+            lp.translate("Scan a medicine to add it here", "दवा जोड़ने के लिए स्कैन करें"),
+            style: const TextStyle(color: Colors.grey),
           ),
         ],
       ),
@@ -76,7 +81,7 @@ class _MedicineCabinetState extends State<MedicineCabinet> {
   }
 
   // The individual medicine card with Swipe-to-Delete
-  Widget _buildMedicineCard(Map<String, dynamic> med, int index) {
+  Widget _buildMedicineCard(Map<String, dynamic> med, int index, LanguageProvider lp) {
     return Dismissible(
       key: Key(med['dateAdded'] ?? index.toString()),
       direction: DismissDirection.endToStart,
@@ -90,10 +95,17 @@ class _MedicineCabinetState extends State<MedicineCabinet> {
         child: const Icon(LucideIcons.trash2, color: Colors.white),
       ),
       onDismissed: (direction) async {
-        // Logic to delete will go here in the next sub-step!
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("${med['name']} removed")));
+        // Here you would typically call LocalStorage.deleteMedicine(index)
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              lp.translate(
+                "${med['name']} removed", 
+                "${med['name']} हटा दिया गया"
+              ),
+            ),
+          ),
+        );
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
@@ -128,7 +140,7 @@ class _MedicineCabinetState extends State<MedicineCabinet> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    med['name'] ?? "Unknown",
+                    med['name'] ?? lp.translate("Unknown", "अज्ञात"),
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,

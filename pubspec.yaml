@@ -11,6 +11,7 @@ dependencies:
     sdk: flutter
   flutter_displaymode: ^0.6.0
   shared_preferences: ^2.2.2
+  provider: ^6.1.1
   
   # Icons and Fonts
   cupertino_icons: ^1.0.6

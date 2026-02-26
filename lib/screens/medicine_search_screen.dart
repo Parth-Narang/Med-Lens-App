@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart'; // Added Provider
 import '../services/medicine_data.dart';
 import '../medicine_details_screen.dart';
+import '../services/language_provider.dart'; // Ensure this matches your file path
 import '../theme.dart';
 
 class MedicineSearchScreen extends StatefulWidget {
@@ -24,14 +26,16 @@ class _MedicineSearchScreenState extends State<MedicineSearchScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final lp = Provider.of<LanguageProvider>(context);
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FE),
       body: Column(
         children: [
-          _buildPremiumHeader(context),
+          _buildPremiumHeader(context, lp),
           Expanded(
             child: _filteredMedicines.isEmpty
-                ? _buildNoResults()
+                ? _buildNoResults(lp)
                 : ListView.builder(
                     padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
                     itemCount: _filteredMedicines.length,
@@ -40,7 +44,7 @@ class _MedicineSearchScreenState extends State<MedicineSearchScreen> {
                       final code = entry.key;
                       final data = entry.value;
 
-                      return _buildSearchItem(context, data['name'], data['dosage'], code);
+                      return _buildSearchItem(context, data['name'], data['dosage'], code, lp);
                     },
                   ),
           ),
@@ -49,13 +53,13 @@ class _MedicineSearchScreenState extends State<MedicineSearchScreen> {
     );
   }
 
-  Widget _buildPremiumHeader(BuildContext context) {
+  Widget _buildPremiumHeader(BuildContext context, LanguageProvider lp) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.only(left: 24, right: 24, top: 60, bottom: 40),
       decoration: const BoxDecoration(
         color: MedVerifyTheme.primaryBlue,
-        borderRadius: BorderRadius.zero, // Rectangular edges
+        borderRadius: BorderRadius.zero, 
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -68,7 +72,7 @@ class _MedicineSearchScreenState extends State<MedicineSearchScreen> {
               ),
               const SizedBox(width: 16),
               Text(
-                "Medicine Registry",
+                lp.translate("Medicine Registry", "दवा रजिस्ट्री"),
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 22,
                   fontWeight: FontWeight.w800,
@@ -78,13 +82,13 @@ class _MedicineSearchScreenState extends State<MedicineSearchScreen> {
             ],
           ),
           const SizedBox(height: 24),
-          _buildSearchField(),
+          _buildSearchField(lp),
         ],
       ),
     );
   }
 
-  Widget _buildSearchField() {
+  Widget _buildSearchField(LanguageProvider lp) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
@@ -96,11 +100,11 @@ class _MedicineSearchScreenState extends State<MedicineSearchScreen> {
         autofocus: true,
         style: const TextStyle(color: Colors.white),
         cursorColor: Colors.white,
-        decoration: const InputDecoration(
-          hintText: "Search 30+ verified medicines...",
-          hintStyle: TextStyle(color: Colors.white60, fontSize: 15),
+        decoration: InputDecoration(
+          hintText: lp.translate("Search verified medicines...", "सत्यापित दवाएं खोजें..."),
+          hintStyle: const TextStyle(color: Colors.white60, fontSize: 15),
           border: InputBorder.none,
-          icon: Icon(LucideIcons.search, color: Colors.white70, size: 20),
+          icon: const Icon(LucideIcons.search, color: Colors.white70, size: 20),
         ),
         onChanged: (value) {
           setState(() {
@@ -111,7 +115,7 @@ class _MedicineSearchScreenState extends State<MedicineSearchScreen> {
     );
   }
 
-  Widget _buildSearchItem(BuildContext context, String name, String dose, String code) {
+  Widget _buildSearchItem(BuildContext context, String name, String dose, String code, LanguageProvider lp) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
@@ -166,9 +170,9 @@ class _MedicineSearchScreenState extends State<MedicineSearchScreen> {
                         ),
                       ),
                       const SizedBox(height: 4),
-                      const Text(
-                        "Verified Formulation",
-                        style: TextStyle(color: Colors.green, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                      Text(
+                        lp.translate("Verified Formulation", "सत्यापित फॉर्मूलेशन"),
+                        style: const TextStyle(color: Colors.green, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.5),
                       ),
                     ],
                   ),
@@ -182,7 +186,7 @@ class _MedicineSearchScreenState extends State<MedicineSearchScreen> {
     );
   }
 
-  Widget _buildNoResults() {
+  Widget _buildNoResults(LanguageProvider lp) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -198,7 +202,7 @@ class _MedicineSearchScreenState extends State<MedicineSearchScreen> {
           ),
           const SizedBox(height: 24),
           Text(
-            "No results found",
+            lp.translate("No results found", "कोई परिणाम नहीं मिला"),
             style: GoogleFonts.plusJakartaSans(
               fontSize: 18, 
               fontWeight: FontWeight.bold,
@@ -206,10 +210,13 @@ class _MedicineSearchScreenState extends State<MedicineSearchScreen> {
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
-            "Try checking the spelling or use the\nQuick Scanner for better accuracy.",
+          Text(
+            lp.translate(
+              "Try checking the spelling or use the\nQuick Scanner for better accuracy.",
+              "वर्तनी की जाँच करें या बेहतर सटीकता\nके लिए त्वरित स्कैनर का उपयोग करें।"
+            ),
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey, height: 1.5),
+            style: const TextStyle(color: Colors.grey, height: 1.5),
           ),
         ],
       ),
